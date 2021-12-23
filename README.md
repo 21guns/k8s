@@ -1,6 +1,6 @@
 # k8s
 
-## 安装手册
+## 0.安装手册
 	1.	https://kuboard.cn/install/install-k8s.html
 	2.	https://github.com/opsnull/follow-me-install-kubernetes-cluster
 
@@ -48,7 +48,7 @@
 	连接方式：桥接网卡
 	界面名称：en0: Wi-Fi(AirPod)
 	启动虚拟机：在虚拟机内部 ping baidu.com 测试网络连通性
-![](./install-centos-on-virtualbox.png)
+![](./media/install-centos-on-virtualbox.png)
 
 #### 2.vagrant 设置虚拟机
 [Vagrantfile](vagrant/Vagrantfile) 
@@ -146,4 +146,60 @@ POD status = ImagePullBackOff #镜像拉取问题
 kube-prometheus
 git clone https://github.com/coreos/kube-prometheus.git
 使用v0.7.0版本
+
+### 3.使用ansible安装
+
+#### 1.kubespray
+```
+# 免秘钥登录
+ssh-copy-id -i ~/.ssh/id_rsa.pub root@192.168.56.13
+gcl git@github.com:kubernetes-sigs/kubespray.git
+git checkout v2.17.1
+cp -rfp inventory/sample inventory/k8scluster
+```
+修改inventory/k8scluster/group_vars/all/all.yml文件追加如下内容
+```
+# gcr_image_repo: "gcr.mirrors.ustc.edu.cn"
+# kube_image_repo: "registry.cn-hangzhou.aliyuncs.com/google_containers"
+
+# gcr_image_repo: "googlecontainersmirror"
+# kube_image_repo: "googlecontainersmirror"
+
+# quay_image_repo: "quay.mirrors.ustc.edu.cn"
+# docker_image_repo: "reg-mirror.qiniu.com"
+
+# 使用主机的代理
+http_proxy: "http://10.132.1.7:1087"
+https_proxy: "http://10.132.1.7:1087"
+```
+
+```
+pip3 install -r contrib/inventory_builder/requirements.txt
+
+declare -a IPS=(10.10.1.3 10.10.1.4 10.10.1.5)
+CONFIG_FILE=inventory/k8scluster/hosts.yaml python3 contrib/inventory_builder/inventory.py ${IPS[@]}
+
+docker run --rm -it --mount type=bind,source="$(pwd)"/inventory/k8scluster,dst=/inventory \
+  --mount type=bind,source="${HOME}"/.ssh/id_rsa,dst=/root/.ssh/id_rsa \
+  quay.io/kubespray/kubespray:v2.17.1 bash
+# Inside the container you may now run the kubespray playbooks:
+
+ansible-playbook -i /inventory/hosts.yaml --private-key /root/.ssh/id_rsa cluster.yml
+```
+
+翻墙代理设置
+![](./media/proxy-port-listen-address-setting.png)
+
+all.yml追加如下配置
+```
+# 使用主机的代理
+http_proxy: "http://10.132.1.7:1087"
+https_proxy: "http://10.132.1.7:1087"
+```
+
+问题
+1.kubespray docker 运行的分支和inventory/sample 使用的分支不一样
+2.镜像翻墙下载问题
+* 使用翻墙代理实现 -  可实现
+* 使用国内镜像 - 大部分镜像不可用 
 
