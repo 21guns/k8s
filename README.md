@@ -192,7 +192,7 @@ ansible-playbook -i /inventory/hosts.yaml --private-key /root/.ssh/id_rsa cluste
 
 all.yml追加如下配置
 ```
-# 使用主机的代理
+# 使用主机的代理 ,使用这种将导致docker 中追加http_proxy,通过这个代理下载镜像
 http_proxy: "http://10.132.1.7:1087"
 https_proxy: "http://10.132.1.7:1087"
 ```
@@ -203,3 +203,21 @@ https_proxy: "http://10.132.1.7:1087"
 * 使用翻墙代理实现 -  可实现
 * 使用国内镜像 - 大部分镜像不可用 
 
+#### 2.kubeasz
+在安装节点执行
+```
+export release=3.1.1
+wget https://github.com/easzlab/kubeasz/releases/download/${release}/ezdown
+chmod +x ./ezdown
+./ezdown -D
+# 启动 kubeasz docker容器
+./ezdown -S
+# 进入容器
+docker exec -it kubeasz bash
+
+ezctl new k8scluster
+
+ezctl setup k8scluster all
+```
+kube-prometheus
+修改prometheus-adapter和kube-state-metrics文件中的镜像路径，是用哪个hub.docker.com中的镜像
